@@ -1,0 +1,39 @@
+sudo: required
+services:
+- docker
+language: python
+python:
+- '3.6'
+before_install:
+- cd tristan/lab02/python-flask-server
+- docker version
+- docker info
+install:
+- nvm install --lts
+- npm install newman
+- pip install -r requirements.txt
+- pip install -r test-requirements.txt
+- pip install nose
+- pip install Flask-Testing
+before_script:
+- node --version
+- npm --version
+- node_modules/.bin/newman --version
+script:
+- python -m unittest discover
+- docker build -t tristanblo/devopslab02 .
+- docker run --name swagger_flask_tutorial -d -t -p 127.0.0.1:8080:8080 tristanblo/devopslab02
+- docker ps
+- count=0 && until $(curl --output /dev/null --silent --head --fail http://localhost:8080);
+  do printf '.' && sleep 3 && count=$((count+1)) && if [ $count -gt 5 ]; then break;
+  fi; done
+- docker logs swagger_flask_tutorial
+- node_modules/.bin/newman run tests/postman_collection.json -e tests/postman_environment.json
+after_success:
+- docker login -u $DOCKER_USER -p $DOCKER_PASS
+- docker tag tristanblo/devopslab02 tristanblo/devopslab02
+- docker push tristanblo/devopslab02
+env:
+  global:
+  - secure: IfOq273tjlObfCvBnzwJoA8ycJtPeYI1xk9MQnto2SEzVlqEJ8qtUdV/vn5EpkWOYhvtOuNOnDNxgIzfifPziQRw1ZKT8gek1X1SUb7fZzEnewP4OGxppTLqB742d6TGY3FUIQqX17Du236Zc7zHcNS/A40qVbevjhBogypV70ahejPXeVpd3Xbmhxksrd5FO8f8H9hcJj9HmCCwgiSKWufnI0Tbwfr7Cjsx97zNpRdLtwsFA84xL63sbbCVsSUqN6Eh401bWcJqpQZn0L1ubPWTry2auRWVvy/zPFIuQi48lvh2NbIzf7aKy+XbT+YPjUqv4C6nmmDo6OuOkBtemgrbH5Lv+OzRHdy26DY7oso462SJsRYSoVcw8FmWc5uAa12z4/2YL71WxTd396GYrBFn2ogpzhaBHTtbKIP6Ow65OIkf65/UTuz80AyegxUvdFiAqitfgGjfRNHg8XFUkbYOAYa5rBqh4FDy3SE8Lgr0dZJ1LR2dGIup++Q7GalyfXEwMnpUVDYJEQOvG4ebYIrlcjdgwC7xReDSLFmfMrNhcpXjBz1LsJVDvWfXb8U8E3lTXtRqzPPK7WSnqwD+mxNjRt6bzw13ZlraVRzzstYFXAImgMIPTlcRsmK/WBJOtwye8IDlhgjuePSzuq44EPt+jk/ZbZX09RMRAqbmM+M=
+  - secure: YG/arxwfPFhBM7gYcd7KEb9ZSEeJg3Os7mO39IS1xn5NPugUX9URBAr5OjpKIsyZ8juFdamlBiX3vMaxj3Gnh3a68Z8Td4HvKn3ExIwIw1vCYUT67P6KXT90Q5FzVWbZ+K0pxeXpW22ftIaPe9qdSdOHVvC+mFrsW9Q3UBxKQ7QoyzmKP8xftkE+fqrcP4QtmNpHb3ufB/RcAdGe7c3uOYOdWnIP1VJ+qQyJdNOHgXQony/rqz1lggBhojxkHBYd2nkrQ9JSN/+tti+Mj3FebQX3vrQ9crV9yIEJ1uw/SFr0BjptjKxDJY1RchNki0yrF8+l1KJ93AwMbRO9d7YRUFMpd3j/gyiQV5l+/Ml8OCbcXTMuSVvJOW2dlgQ+FLeivV80WGW6YJyXqyLZfX31wxUSrEE6viEB11dhFqT93gxwKZA7Is7rl7EuWlJOiJE1NjHIy+jDiQHOHq/dMS15sMFm0wqX5YZ4Ewc0E6MOBxGINT5lzi5TgD32+RTuG/b7wSv/JQf52XWe2FL592yR8f5AyD8iRcz7fO2D2pEvlTxZANPxmSHdL7y5U3K6lJjdyVaEokcCa17pBD2VuQ1N79AMdhP6F23B391kjh4dVgBPxjpqfafKAnWLlJ1vfINk63trGdVIHsrWonKdC0X9ZMtJ/G4jBcPFgZYrUtkKMFI=
